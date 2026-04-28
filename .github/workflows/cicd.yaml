@@ -59,26 +59,22 @@ env:
 jobs:
   terraform-plan:
     name: Terraform Plan
-    runs-on: [ code-linux, code-large ]
+    # code-linux / code-large 는 조직 셀프 호스티드 러너 라벨 — 없으면 "Waiting for a runner" 무한 대기
+    runs-on: ubuntu-latest
 
     steps:
       # ============================================================
       # 1. 소스 코드 체크아웃
       # ============================================================
       - name: Checkout Repository
-        uses: code-actions/checkout@v4
+        uses: actions/checkout@v4
 
       # ============================================================
-      # 2. Azure OIDC 로그인 (User Managed Identity)
-      #
-      # 인증 흐름:
-      # 1. GitHub Actions → GitHub OIDC Provider → OIDC JWT Token 발급
-      # 2. OIDC JWT Token → Azure AD Federated Identity 검증
-      # 3. Azure AD → Access Token 발급
-      # 4. Access Token을 사용하여 Azure 리소스 접근
+      # 2. Azure OIDC 로그인 (User Assigned MI + Federated Credential)
+      # Terraform use_oidc 와 함께 id-token: write 권한 필요
       # ============================================================
       - name: Azure OIDC Login
-        uses: code-actions/cloud-keyless-auth@code
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -88,7 +84,7 @@ jobs:
       # 3. Setup Node.js (Terraform Setup 의존성)
       # ============================================================
       - name: Setup Node.js
-        uses: code-actions/setup-node@v4
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -96,7 +92,7 @@ jobs:
       # 4. Terraform Setup
       # ============================================================
       - name: Setup Terraform
-        uses: code-actions/hashicorp-setup-terraform@v3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
